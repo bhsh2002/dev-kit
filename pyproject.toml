@@ -38,7 +38,7 @@ packages = [{include = "dev_kit", from = "src"}]
 
 [[tool.poetry.source]]
 name = "github"
-url = "https://pypi.pkg.github.com/bhsh2002"
+url = "https://pypi.pkg.github.com/bhsh2002/"
 priority = "supplemental"
 
 [tool.poetry.urls]
