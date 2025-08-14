@@ -36,7 +36,7 @@ This script will:
 
 1. **Configure the GitHub Packages repository**:
    ```bash
-   poetry config repositories.github https://maven.pkg.github.com/bhsh2002/dev-kit
+   poetry config repositories.github https://pypi.pkg.github.com/bhsh2002/
    ```
 
 2. **Configure authentication**:
@@ -93,13 +93,13 @@ You can also manually trigger the publishing workflow:
 Once published, others can install your package using:
 
 ```bash
-pip install --index-url https://pypi.org/simple/ --extra-index-url https://maven.pkg.github.com/bhsh2002/dev-kit dev-kit
+pip install --index-url https://pypi.org/simple/ --extra-index-url https://pypi.pkg.github.com/bhsh2002/ dev-kit
 ```
 
 Or if using Poetry in another project:
 
 ```bash
-poetry source add github https://maven.pkg.github.com/bhsh2002/dev-kit
+poetry source add github https://pypi.pkg.github.com/bhsh2002/
 poetry add dev-kit --source github
 ```
 
