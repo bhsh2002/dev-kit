@@ -42,8 +42,6 @@ jobs:
           ls -la dist/
 
       - name: Publish to GitHub Packages
-        env:
-          POETRY_PYPI_TOKEN_GITHUB: ${{ secrets.GITHUB_TOKEN }}
         run: |
           poetry publish --repository github --verbose
 
