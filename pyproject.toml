@@ -1,7 +1,6 @@
 [project]
 name = "dev-kit"
 version = "0.1.0"
-packages = [{include = "dev_kit", from = "src"}]
 description = "personal dev-kit for Flask applications"
 authors = [
     {name = "Bahaa Shklawon", email = "bahaashklawon@gmail.com"}
