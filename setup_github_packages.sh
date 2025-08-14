@@ -14,7 +14,7 @@ fi
 
 # Configure the GitHub Packages repository
 echo "Configuring GitHub Packages repository..."
-poetry config repositories.github https://maven.pkg.github.com/bhsh2002/dev-kit
+poetry config repositories.github https://pypi.pkg.github.com/bhsh2002/
 
 # Prompt for GitHub token
 echo ""
