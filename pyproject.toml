@@ -60,6 +60,7 @@ pre-commit = "^3.8.0"
 
 [tool.pytest.ini_options]
 addopts = "-q --cov=src/dev_kit --cov-config=.coveragerc --cov-report=term-missing --cov-fail-under=80"
+python_paths = ["src"]
 filterwarnings = [
   "ignore::DeprecationWarning",
 ]
