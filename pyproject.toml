@@ -7,6 +7,19 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
+license = {text = "MIT"}
+homepage = "https://github.com/bhsh2002/dev-kit"
+repository = "https://github.com/bhsh2002/dev-kit"
+keywords = ["flask", "dev-kit", "python", "web-framework"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "flask (>=3.1.1,<4.0.0)",
     "sqlalchemy (>=2.0.42,<3.0.0)",
@@ -22,6 +35,15 @@ dev-kit-seed-auth = "dev_kit.modules.users.cli:main"
 
 [tool.poetry]
 packages = [{include = "dev_kit", from = "src"}]
+
+[[tool.poetry.source]]
+name = "github"
+url = "https://maven.pkg.github.com/bhsh2002/dev-kit"
+priority = "supplemental"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/bhsh2002/dev-kit/issues"
+"Changelog" = "https://github.com/bhsh2002/dev-kit/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
