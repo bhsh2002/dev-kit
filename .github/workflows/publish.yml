@@ -28,9 +28,8 @@ jobs:
 
       - name: Configure Poetry for GitHub Packages
         run: |
-          poetry config repositories.github https://pypi.pkg.github.com/${{ github.repository_owner }}/
-          poetry config http-basic.github __token__ ${{ secrets.GITHUB_TOKEN }}
-          poetry config --list | grep github
+          poetry config repositories.github https://pypi.pkg.github.com/${{ github.repository_owner }}
+          poetry config http-basic.github __token__ ${{ secrets.GH_PAT }}
 
       - name: Install dependencies
         run: |
