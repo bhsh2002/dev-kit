@@ -35,31 +35,31 @@ def auth_header(identity: str, perms: list[str] | None = None):
     return {"Authorization": f"Bearer {token}"}
 
 
-# def test_assign_role_forbidden_without_permission(client):
-#     with client.application.app_context():
-#         user = User(username="nope")
-#         user.set_password("pw")
-#         db.session.add(user)
-#         role = Role(name="viewer", display_name="Viewer")
-#         db.session.add(role)
-#         db.session.commit()
-#         user_uuid = str(user.uuid)
-#         role_id = role.id
+def test_assign_role_forbidden_without_permission(client):
+    with client.application.app_context():
+        user = User(username="nope")
+        user.set_password("pw")
+        db.session.add(user)
+        role = Role(name="viewer", display_name="Viewer")
+        db.session.add(role)
+        db.session.commit()
+        user_uuid = str(user.uuid)
+        role_id = role.id
 
-#     # Token without required permission
-#     headers = auth_header(identity=user_uuid, perms=["read:user"])  # missing assign_role:user
-#     resp = client.post(f"/roles/users/{user_uuid}", json={"role_id": role_id}, headers=headers)
-#     assert resp.status_code == 403
+    # Token without required permission
+    headers = auth_header(identity=user_uuid, perms=["read:user"])  # missing assign_role:user
+    resp = client.post(f"/roles/users/{user_uuid}", json={"role_id": role_id}, headers=headers)
+    assert resp.status_code == 403
 
 
-# def test_list_user_roles_forbidden_without_permission(client):
-#     with client.application.app_context():
-#         user = User(username="nope2")
-#         user.set_password("pw")
-#         db.session.add(user)
-#         db.session.commit()
-#         user_uuid = str(user.uuid)
+def test_list_user_roles_forbidden_without_permission(client):
+    with client.application.app_context():
+        user = User(username="nope2")
+        user.set_password("pw")
+        db.session.add(user)
+        db.session.commit()
+        user_uuid = str(user.uuid)
 
-#     headers = auth_header(identity=user_uuid, perms=[])  # no perms
-#     resp = client.get(f"/roles/users/{user_uuid}", headers=headers)
-#     assert resp.status_code == 403
+    headers = auth_header(identity=user_uuid, perms=[])  # no perms
+    resp = client.get(f"/roles/users/{user_uuid}", headers=headers)
+    assert resp.status_code == 403
