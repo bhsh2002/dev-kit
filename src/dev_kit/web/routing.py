@@ -13,6 +13,13 @@ from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 
 from dev_kit.exceptions import AppBaseException, NotFoundError
+
+try:
+    # Flask-JWT-Extended exceptions for missing/invalid auth
+    from flask_jwt_extended.exceptions import NoAuthorizationError, CSRFError  # type: ignore
+except Exception:  # pragma: no cover - optional import in environments without FJWE
+    NoAuthorizationError = None  # type: ignore
+    CSRFError = None  # type: ignore
 from dev_kit.services import BaseService
 from dev_kit.web.decorators import permission_required
 from dev_kit.web.schemas import MessageSchema
@@ -28,6 +35,19 @@ def register_error_handlers(bp: APIBlueprint):
     @bp.errorhandler(AppBaseException)
     def handle_app_exception(error):
         return error.to_dict(), error.status_code
+
+    # Prefer explicit handlers for JWT-related errors so they don't get masked by the generic handler
+    if NoAuthorizationError is not None:
+
+        @bp.errorhandler(NoAuthorizationError)  # type: ignore[misc]
+        def handle_no_auth_error(error):  # noqa: ANN001
+            return {"message": "Missing authorization", "error_code": "AUTH_REQUIRED"}, 401
+
+    if CSRFError is not None:
+
+        @bp.errorhandler(CSRFError)  # type: ignore[misc]
+        def handle_csrf_error(error):  # noqa: ANN001
+            return {"message": "CSRF validation failed", "error_code": "CSRF_FAILED"}, 401
 
     @bp.errorhandler(ValidationError)
     def handle_validation_error(error):
@@ -61,7 +81,7 @@ def register_crud_routes(
         id_field: The field to use for URL parameters ('id' or 'uuid').
         routes_config: A dictionary to customize auth/permissions per route.
     """
-    register_error_handlers(bp)
+    # register_error_handlers(bp)
 
     main_schema = schemas["main"]
     input_schema = schemas["input"]
@@ -77,7 +97,9 @@ def register_crud_routes(
     # Prepare dynamic auth/permission decorators per route
     cfg: Dict[str, Dict[str, Any]] = routes_config or {}
 
-    def get_route_decorators(route_name: str, default_require_auth: bool, default_permission: str | None) -> List[Callable]:
+    def get_route_decorators(
+        route_name: str, default_require_auth: bool, default_permission: str | None
+    ) -> List[Callable]:
         route_cfg = cfg.get(route_name, {})
         decorators: List[Callable] = []
 
@@ -143,40 +165,51 @@ def register_crud_routes(
         return {"message": f"{entity_name.capitalize()} deleted successfully."}
 
     # Compose and register decorators for each route in the correct order
-    list_decorators: List[Callable] = [
-        bp.get("/"),
-        bp.input(query_schema, location="query"),
-        bp.output(pagination_out_schema),
-        bp.doc(summary=f"List all {entity_name}s", tags=tags),
-    ] + get_route_decorators("list", default_require_auth=True, default_permission=None)
-    list_items = _apply_decorators(list_items, list_decorators)
+    if cfg.get("list", {}).get("enabled", True):  # Default to True if not specified
+        list_decorators: List[Callable] = [
+            bp.get("/"),
+            bp.input(query_schema, location="query"),
+            bp.output(pagination_out_schema),
+            bp.doc(summary=f"List all {entity_name}s", tags=tags),
+        ] + get_route_decorators("list", default_require_auth=True, default_permission=None)
+        list_items = _apply_decorators(list_items, list_decorators)
 
-    get_decorators: List[Callable] = [
-        bp.get(f"/<{id_field}>")
-    , bp.output(main_schema),
-        bp.doc(summary=f"Get a single {entity_name}", tags=tags),
-    ] + get_route_decorators("get", default_require_auth=True, default_permission=None)
-    get_item = _apply_decorators(get_item, get_decorators)
+    if cfg.get("get", {}).get("enabled", True):  # Default to True if not specified
+        get_decorators: List[Callable] = [
+            bp.get(f"/<{id_field}>"),
+            bp.output(main_schema),
+            bp.doc(summary=f"Get a single {entity_name}", tags=tags),
+        ] + get_route_decorators("get", default_require_auth=True, default_permission=None)
+        get_item = _apply_decorators(get_item, get_decorators)
 
-    create_decorators: List[Callable] = [
-        bp.post("/"),
-        bp.input(input_schema),
-        bp.output(main_schema, status_code=201),
-        bp.doc(summary=f"Create a new {entity_name}", tags=tags),
-    ] + get_route_decorators("create", default_require_auth=True, default_permission=f"create:{entity_name}")
-    create_item = _apply_decorators(create_item, create_decorators)
+    if cfg.get("create", {}).get("enabled", True):  # Default to True if not specified
+        create_decorators: List[Callable] = [
+            bp.post("/"),
+            bp.input(input_schema),
+            bp.output(main_schema, status_code=201),
+            bp.doc(summary=f"Create a new {entity_name}", tags=tags),
+        ] + get_route_decorators(
+            "create", default_require_auth=True, default_permission=f"create:{entity_name}"
+        )
+        create_item = _apply_decorators(create_item, create_decorators)
 
-    update_decorators: List[Callable] = [
-        bp.patch(f"/<{id_field}>")
-    , bp.input(update_schema),
-        bp.output(main_schema),
-        bp.doc(summary=f"Update an existing {entity_name}", tags=tags),
-    ] + get_route_decorators("update", default_require_auth=True, default_permission=f"update:{entity_name}")
-    update_item = _apply_decorators(update_item, update_decorators)
+    if cfg.get("update", {}).get("enabled", True):  # Default to True if not specified
+        update_decorators: List[Callable] = [
+            bp.patch(f"/<{id_field}>"),
+            bp.input(update_schema),
+            bp.output(main_schema),
+            bp.doc(summary=f"Update an existing {entity_name}", tags=tags),
+        ] + get_route_decorators(
+            "update", default_require_auth=True, default_permission=f"update:{entity_name}"
+        )
+        update_item = _apply_decorators(update_item, update_decorators)
 
-    delete_decorators: List[Callable] = [
-        bp.delete(f"/<{id_field}>")
-    , bp.output(MessageSchema, status_code=200),
-        bp.doc(summary=f"Delete an {entity_name}", tags=tags),
-    ] + get_route_decorators("delete", default_require_auth=True, default_permission=f"delete:{entity_name}")
-    delete_item = _apply_decorators(delete_item, delete_decorators)
+    if cfg.get("delete", {}).get("enabled", True):  # Default to True if not specified
+        delete_decorators: List[Callable] = [
+            bp.delete(f"/<{id_field}>"),
+            bp.output(MessageSchema, status_code=200),
+            bp.doc(summary=f"Delete an {entity_name}", tags=tags),
+        ] + get_route_decorators(
+            "delete", default_require_auth=True, default_permission=f"delete:{entity_name}"
+        )
+        delete_item = _apply_decorators(delete_item, delete_decorators)

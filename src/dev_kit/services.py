@@ -11,25 +11,10 @@ from functools import wraps
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from dev_kit.database.repository import BaseRepository, PaginationResult
 from dev_kit.exceptions import NotFoundError
-
-
-def handle_session(func):
-    """
-    Decorator to handle database session using nested transactions (savepoints).
-    Ensures atomicity for the enclosed operation without committing the outer
-    transaction. Uses a context manager for clarity and correctness.
-    """
-
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        # Using begin_nested as a context manager for savepoint-based transactions
-        with self._db_session.begin_nested():
-            return func(self, *args, **kwargs)
-
-    return wrapper
 
 
 TModel = TypeVar("TModel")
@@ -77,7 +62,6 @@ class BaseService(Generic[TModel]):
             if hasattr(instance, key):
                 setattr(instance, key, value)
 
-    @handle_session
     def create(self, data: Dict[str, Any]) -> TModel:
         """Creates a new entity after processing it through the pre-create hook."""
         processed_data = self.pre_create_hook(data)
@@ -86,10 +70,7 @@ class BaseService(Generic[TModel]):
         self._db_session.refresh(entity)
         return entity
 
-    @handle_session
-    def update(
-        self, entity_id: Any, data: Dict[str, Any], id_field: str = "id"
-    ) -> TModel:
+    def update(self, entity_id: Any, data: Dict[str, Any], id_field: str = "id") -> TModel:
         """Updates an existing entity after finding it by the specified field."""
         finder = getattr(self.repo, f"get_by_{id_field}", self.repo.get_by_id)
         entity = finder(entity_id)
@@ -98,11 +79,9 @@ class BaseService(Generic[TModel]):
             raise NotFoundError(entity_name=self.model.__name__, entity_id=entity_id)
 
         self.pre_update_hook(entity, data)
-        self._db_session.flush()
-        self._db_session.refresh(entity)
+        self._db_session.flush()  # Flush changes to the DB
         return entity
 
-    @handle_session
     def delete(self, entity_id: Any, id_field: str = "id", soft: bool = True) -> None:
         """Deletes an entity after finding it by the specified field."""
         finder = getattr(self.repo, f"get_by_{id_field}", self.repo.get_by_id)
@@ -115,15 +94,11 @@ class BaseService(Generic[TModel]):
         return None
 
     # The rest of the methods are read-only and can delegate directly to the repository
-    def get_by_id(
-        self, id_: Any, include_soft_deleted: bool = False
-    ) -> Optional[TModel]:
+    def get_by_id(self, id_: Any, include_soft_deleted: bool = False) -> Optional[TModel]:
         """Fetches a single record by its ID."""
         return self.repo.get_by_id(id_, include_soft_deleted)
 
-    def get_by_uuid(
-        self, uuid_: str, include_soft_deleted: bool = False
-    ) -> Optional[TModel]:
+    def get_by_uuid(self, uuid_: str, include_soft_deleted: bool = False) -> Optional[TModel]:
         """Fetches a single record by its UUID."""
         return self.repo.get_by_uuid(uuid_, include_soft_deleted)
 
@@ -136,6 +111,4 @@ class BaseService(Generic[TModel]):
         include_soft_deleted: bool = False,
     ) -> PaginationResult[TModel]:
         """Fetches records with pagination."""
-        return self.repo.paginate(
-            page, per_page, filters, order_by, include_soft_deleted
-        )
+        return self.repo.paginate(page, per_page, filters, order_by, include_soft_deleted)
