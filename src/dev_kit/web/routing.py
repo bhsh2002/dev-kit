@@ -81,7 +81,7 @@ def register_crud_routes(
         id_field: The field to use for URL parameters ('id' or 'uuid').
         routes_config: A dictionary to customize auth/permissions per route.
     """
-    # register_error_handlers(bp)
+    register_error_handlers(bp)
 
     main_schema = schemas["main"]
     input_schema = schemas["input"]
