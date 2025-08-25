@@ -23,6 +23,7 @@ except Exception:  # pragma: no cover - optional import in environments without 
 from dev_kit.services import BaseService
 from dev_kit.web.decorators import permission_required
 from dev_kit.web.schemas import MessageSchema
+from dev_kit.database.extensions import db
 
 
 def register_error_handlers(bp: APIBlueprint):
@@ -41,13 +42,19 @@ def register_error_handlers(bp: APIBlueprint):
 
         @bp.errorhandler(NoAuthorizationError)  # type: ignore[misc]
         def handle_no_auth_error(error):  # noqa: ANN001
-            return {"message": "Missing authorization", "error_code": "AUTH_REQUIRED"}, 401
+            return {
+                "message": "Missing authorization",
+                "error_code": "AUTH_REQUIRED",
+            }, 401
 
     if CSRFError is not None:
 
         @bp.errorhandler(CSRFError)  # type: ignore[misc]
         def handle_csrf_error(error):  # noqa: ANN001
-            return {"message": "CSRF validation failed", "error_code": "CSRF_FAILED"}, 401
+            return {
+                "message": "CSRF validation failed",
+                "error_code": "CSRF_FAILED",
+            }, 401
 
     @bp.errorhandler(ValidationError)
     def handle_validation_error(error):
@@ -151,7 +158,9 @@ def register_crud_routes(
 
     def create_item(json_data):
         """Create a new item."""
-        return service.create(json_data)
+        new = service.create(json_data)
+        db.session.commit()
+        return new
 
     def update_item(json_data, **kwargs):
         """Update a single item."""
@@ -189,7 +198,9 @@ def register_crud_routes(
             bp.output(main_schema, status_code=201),
             bp.doc(summary=f"Create a new {entity_name}", tags=tags),
         ] + get_route_decorators(
-            "create", default_require_auth=True, default_permission=f"create:{entity_name}"
+            "create",
+            default_require_auth=True,
+            default_permission=f"create:{entity_name}",
         )
         create_item = _apply_decorators(create_item, create_decorators)
 
@@ -200,7 +211,9 @@ def register_crud_routes(
             bp.output(main_schema),
             bp.doc(summary=f"Update an existing {entity_name}", tags=tags),
         ] + get_route_decorators(
-            "update", default_require_auth=True, default_permission=f"update:{entity_name}"
+            "update",
+            default_require_auth=True,
+            default_permission=f"update:{entity_name}",
         )
         update_item = _apply_decorators(update_item, update_decorators)
 
@@ -210,6 +223,8 @@ def register_crud_routes(
             bp.output(MessageSchema, status_code=200),
             bp.doc(summary=f"Delete an {entity_name}", tags=tags),
         ] + get_route_decorators(
-            "delete", default_require_auth=True, default_permission=f"delete:{entity_name}"
+            "delete",
+            default_require_auth=True,
+            default_permission=f"delete:{entity_name}",
         )
         delete_item = _apply_decorators(delete_item, delete_decorators)
