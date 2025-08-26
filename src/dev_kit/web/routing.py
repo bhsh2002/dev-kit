@@ -13,6 +13,7 @@ from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 
 from dev_kit.exceptions import AppBaseException, NotFoundError
+from flask import current_app
 
 try:
     # Flask-JWT-Extended exceptions for missing/invalid auth
@@ -64,7 +65,7 @@ def register_error_handlers(bp: APIBlueprint):
     def handle_generic_exception(error):
         # In production, you must log the error here.
         # from flask import current_app
-        # current_app.logger.error(f"Unhandled exception: {error}", exc_info=True)
+        current_app.logger.error(f"Unhandled exception: {error}", exc_info=True)
         return {"message": "An unexpected internal error occurred."}, 500
 
 
@@ -180,7 +181,9 @@ def register_crud_routes(
             bp.input(query_schema, location="query"),
             bp.output(pagination_out_schema),
             bp.doc(summary=f"List all {entity_name}s", tags=tags),
-        ] + get_route_decorators("list", default_require_auth=True, default_permission=None)
+        ] + get_route_decorators(
+            "list", default_require_auth=True, default_permission=None
+        )
         list_items = _apply_decorators(list_items, list_decorators)
 
     if cfg.get("get", {}).get("enabled", True):  # Default to True if not specified
@@ -188,7 +191,9 @@ def register_crud_routes(
             bp.get(f"/<{id_field}>"),
             bp.output(main_schema),
             bp.doc(summary=f"Get a single {entity_name}", tags=tags),
-        ] + get_route_decorators("get", default_require_auth=True, default_permission=None)
+        ] + get_route_decorators(
+            "get", default_require_auth=True, default_permission=None
+        )
         get_item = _apply_decorators(get_item, get_decorators)
 
     if cfg.get("create", {}).get("enabled", True):  # Default to True if not specified
